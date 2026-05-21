@@ -14,7 +14,7 @@ import {
   Activity,
 } from "lucide-react";
 import { CodeEditor } from "./CodeEditor";
-import { PipelineAnimation } from "@/components/compiler/PipelineAnimation";
+import { CompilerPipeline } from "@/components/compiler/pipeline";
 import { TokenVisualization } from "@/components/compiler/TokenVisualization";
 import { ParseTreeView } from "@/components/compiler/ParseTreeView";
 import { ErrorPanel } from "@/components/compiler/ErrorPanel";
@@ -236,9 +236,12 @@ export function WorkspaceClient() {
                     <h3 className="text-xs font-medium text-slate-500 mb-3">
                       COMPILER PIPELINE
                     </h3>
-                    <PipelineAnimation
+                    <CompilerPipeline
                       activePhase={activePhase}
                       isCompiling={isCompiling}
+                      compileStatus={status}
+                      tokenCount={result?.tokens.length}
+                      errorCount={result?.errors.length}
                     />
                   </GlassCard>
                   {result && (
