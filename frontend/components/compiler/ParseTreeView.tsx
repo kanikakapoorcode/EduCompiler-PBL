@@ -46,7 +46,7 @@ export function ParseTreeView({ tree, visible }: ParseTreeViewProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-64 sm:h-72 w-full rounded-lg overflow-hidden border border-white/10"
+      className="h-72 sm:h-96 w-full rounded-lg overflow-hidden border border-white/10"
     >
       <ReactFlow
         nodes={nodes as Node[]}

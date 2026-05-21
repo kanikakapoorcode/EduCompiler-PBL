@@ -1,9 +1,7 @@
 import type { CompileResponse, LogEntry, ParseTreeNode, Token } from "./types";
+import { DEFAULT_SAMPLE_CODE } from "./code-samples";
 
-export const DEFAULT_SAMPLE_CODE = `int x = 10;
-int y = 20;
-int sum = x + y;
-print(sum);`;
+export { DEFAULT_SAMPLE_CODE };
 
 export const mockTokens: Token[] = [
   { type: "KEYWORD", value: "int", line: 1, column: 1 },
@@ -96,7 +94,46 @@ export const mockSuccessResponse: CompileResponse = {
     "Compilation finished — ready for code generation",
   ],
   phase: "output",
+  semanticErrors: [],
+  symbolTable: [
+    { identifier: "x", type: "int", scope: "global", line: 1, initialized: true, assignedValue: "10", status: "initialized" },
+    { identifier: "y", type: "int", scope: "global", line: 2, initialized: true, assignedValue: "20", status: "initialized" },
+    { identifier: "sum", type: "int", scope: "global", line: 3, initialized: true, assignedValue: "x + y", status: "initialized" },
+  ],
 };
+
+/** Rich mock for the large demo program (mock mode only) */
+export function buildBigMockResponse(): CompileResponse {
+  const ids = [
+    "mathScore", "scienceScore", "englishScore", "historyScore", "artScore",
+    "total", "total2", "finalSum", "grandTotal", "average", "roundedAvg",
+  ];
+  const symbolTable = ids.map((id, i) => ({
+    identifier: id,
+    type: i === 9 ? "float" : "int",
+    scope: "global",
+    line: i + 2,
+    declared: true,
+    initialized: true,
+    assignedValue: i < 5 ? String(85 + i * 2) : id,
+    status: "initialized",
+  }));
+
+  return {
+    ...mockSuccessResponse,
+    tokens: mockTokens,
+    logs: [
+      "Lexical analysis completed: 120+ tokens generated",
+      "Syntax analysis passed with no errors",
+      "Semantic analysis completed: 0 issue(s)",
+      "Symbol table generated: 11 entries",
+      "Parse tree constructed successfully",
+      "Compilation finished — ready for code generation",
+    ],
+    symbolTable,
+    semanticErrors: [],
+  };
+}
 
 export const mockErrorResponse: CompileResponse = {
   tokens: [

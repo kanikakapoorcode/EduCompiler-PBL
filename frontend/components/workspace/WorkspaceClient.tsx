@@ -12,17 +12,22 @@ import {
   Network,
   AlertCircle,
   Activity,
+  Table2,
+  BarChart3,
 } from "lucide-react";
 import { CodeEditor } from "./CodeEditor";
+import { SampleProgramPicker } from "./SampleProgramPicker";
 import { CompilerPipeline } from "@/components/compiler/pipeline";
 import { TokenVisualization } from "@/components/compiler/TokenVisualization";
 import { ParseTreeView } from "@/components/compiler/ParseTreeView";
-import { ErrorPanel } from "@/components/compiler/ErrorPanel";
+import { DiagnosticsPanel } from "@/components/compiler/DiagnosticsPanel";
+import { SymbolTablePanel } from "@/components/compiler/SymbolTablePanel";
+import { AnalysisDashboard } from "@/components/compiler/AnalysisDashboard";
 import { ConsolePanel } from "@/components/compiler/ConsolePanel";
 import { Button } from "@/components/ui/Button";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { compileCode } from "@/lib/api";
-import { DEFAULT_SAMPLE_CODE } from "@/lib/mock-data";
+import { DEFAULT_SAMPLE_CODE } from "@/lib/code-samples";
 import {
   createLog,
   logsFromApi,
@@ -31,7 +36,13 @@ import {
 } from "@/lib/compile-helpers";
 import type { CompileResponse, CompilerPhase, LogEntry } from "@/lib/types";
 
-type TabId = "pipeline" | "tokens" | "tree" | "errors";
+type TabId =
+  | "pipeline"
+  | "analysis"
+  | "tokens"
+  | "symbols"
+  | "tree"
+  | "errors";
 
 const PHASE_SEQUENCE: CompilerPhase[] = [
   "source",
@@ -60,6 +71,11 @@ export function WorkspaceClient() {
     setLogs((prev) => [...prev, entry]);
   }, []);
 
+  const allDiagnostics = [
+    ...(result?.errors ?? []),
+    ...(result?.semanticErrors ?? []),
+  ];
+
   const runCompile = useCallback(async () => {
     setIsCompiling(true);
     setStatus("compiling");
@@ -77,33 +93,36 @@ export function WorkspaceClient() {
       setResult(response);
       setActivePhase(response.phase);
 
-      const hasErrors = response.errors.length > 0;
+      const hasErrors =
+        response.errors.length > 0 ||
+        (response.semanticErrors?.length ?? 0) > 0;
       setStatus(
-        response.status === "success"
-          ? "success"
-          : hasErrors
-            ? "error"
-            : "error"
+        response.status === "success" ? "success" : "error"
       );
 
       setLogs((prev) => [
         ...prev,
         ...logsFromApi(response.logs, response.status),
-        ...suggestionLogs(response.errors),
+        ...suggestionLogs([
+          ...response.errors,
+          ...(response.semanticErrors ?? []),
+        ]),
         createLog(
           hasErrors
-            ? `Found ${response.errors.length} diagnostic(s)`
-            : `Generated ${response.tokens.length} tokens — parse tree ready`,
+            ? `Found ${response.errors.length} syntax + ${response.semanticErrors?.length ?? 0} semantic issue(s)`
+            : `${response.tokens.length} tokens · ${response.symbolTable?.length ?? 0} symbols · parse tree ready`,
           hasErrors ? "error" : "success"
         ),
       ]);
 
       if (hasErrors) setActiveTab("errors");
-      else if (response.tokens.length) setActiveTab("tokens");
+      else if ((response.symbolTable?.length ?? 0) > 5) setActiveTab("symbols");
+      else if (response.tokens.length > 20) setActiveTab("analysis");
+      else setActiveTab("tokens");
     } catch {
       setStatus("error");
       appendLog(
-        createLog("Compilation failed — backend unreachable, check API URL", "error")
+        createLog("Compilation failed — is the backend running on :8000?", "error")
       );
     } finally {
       setIsCompiling(false);
@@ -135,10 +154,14 @@ export function WorkspaceClient() {
 
   const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: "pipeline", label: "Pipeline", icon: Activity },
+    { id: "analysis", label: "Overview", icon: BarChart3 },
     { id: "tokens", label: "Tokens", icon: Tags },
+    { id: "symbols", label: "Symbols", icon: Table2 },
     { id: "tree", label: "Parse Tree", icon: Network },
-    { id: "errors", label: "Errors", icon: AlertCircle },
+    { id: "errors", label: "Diagnostics", icon: AlertCircle },
   ];
+
+  const issueCount = allDiagnostics.length;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#030712]">
@@ -155,7 +178,8 @@ export function WorkspaceClient() {
             Edu<span className="text-indigo-400">Compiler</span> Workspace
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <SampleProgramPicker onSelect={setCode} disabled={isCompiling} />
           <span className="hidden md:inline text-[10px] text-slate-600">
             Ctrl+Enter
           </span>
@@ -176,21 +200,23 @@ export function WorkspaceClient() {
       </header>
 
       <div className="flex flex-1 flex-col lg:flex-row min-h-0 overflow-hidden">
-        <section className="flex flex-col border-b lg:border-b-0 lg:border-r border-white/10 lg:w-1/2 min-h-[320px]">
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 bg-slate-900/50">
+        <section className="flex flex-col border-b lg:border-b-0 lg:border-r border-white/10 lg:w-1/2 min-h-[360px]">
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 bg-slate-900/50 flex-wrap">
             <span className="text-xs font-medium text-slate-500">SOURCE</span>
-            <span className="text-xs text-slate-600">educompiler</span>
-            {result && result.errors.length > 0 && (
+            <span className="text-xs text-slate-600">
+              {code.split("\n").length} lines
+            </span>
+            {issueCount > 0 && (
               <span className="ml-auto text-[10px] text-red-400">
-                {result.errors.length} error(s)
+                {issueCount} issue(s)
               </span>
             )}
           </div>
-          <div className="flex-1 min-h-[280px] p-2">
+          <div className="flex-1 min-h-[320px] p-2">
             <CodeEditor
               value={code}
               onChange={setCode}
-              errors={result?.errors.map((e) => ({
+              errors={allDiagnostics.map((e) => ({
                 line: e.line,
                 message: e.message,
               }))}
@@ -205,7 +231,7 @@ export function WorkspaceClient() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2 px-3 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab.id
                     ? "text-indigo-300 border-b-2 border-indigo-500 bg-indigo-500/10"
                     : "text-slate-500 hover:text-slate-300"
@@ -213,9 +239,14 @@ export function WorkspaceClient() {
               >
                 <tab.icon className="h-3.5 w-3.5" />
                 {tab.label}
-                {tab.id === "errors" && result && result.errors.length > 0 && (
+                {tab.id === "errors" && issueCount > 0 && (
                   <span className="rounded-full bg-red-500/80 text-white text-[10px] px-1.5 min-w-[18px]">
-                    {result.errors.length}
+                    {issueCount}
+                  </span>
+                )}
+                {tab.id === "symbols" && result && (result.symbolTable?.length ?? 0) > 0 && (
+                  <span className="rounded-full bg-cyan-500/80 text-white text-[10px] px-1.5">
+                    {result.symbolTable!.length}
                   </span>
                 )}
               </button>
@@ -241,35 +272,20 @@ export function WorkspaceClient() {
                       isCompiling={isCompiling}
                       compileStatus={status}
                       tokenCount={result?.tokens.length}
-                      errorCount={result?.errors.length}
+                      errorCount={issueCount}
                     />
                   </GlassCard>
-                  {result && (
-                    <GlassCard>
-                      <h3 className="text-xs font-medium text-slate-500 mb-2">
-                        STATUS
-                      </h3>
-                      <p
-                        className={`text-sm font-medium ${
-                          result.status === "success"
-                            ? "text-emerald-400"
-                            : "text-red-400"
-                        }`}
-                      >
-                        {result.status.toUpperCase()} —{" "}
-                        {result.logs[result.logs.length - 1] ?? "Done"}
-                      </p>
-                    </GlassCard>
-                  )}
+                </motion.div>
+              )}
+
+              {activeTab === "analysis" && (
+                <motion.div key="analysis" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <AnalysisDashboard result={result} isCompiling={isCompiling} />
                 </motion.div>
               )}
 
               {activeTab === "tokens" && (
-                <motion.div
-                  key="tokens"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
+                <motion.div key="tokens" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <GlassCard>
                     <h3 className="text-xs font-medium text-slate-500 mb-3">
                       TOKEN STREAM
@@ -287,12 +303,22 @@ export function WorkspaceClient() {
                 </motion.div>
               )}
 
+              {activeTab === "symbols" && (
+                <motion.div key="symbols" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <GlassCard>
+                    <h3 className="text-xs font-medium text-slate-500 mb-3">
+                      SYMBOL TABLE
+                    </h3>
+                    <SymbolTablePanel
+                      symbols={result?.symbolTable ?? []}
+                      visible={!!result}
+                    />
+                  </GlassCard>
+                </motion.div>
+              )}
+
               {activeTab === "tree" && (
-                <motion.div
-                  key="tree"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
+                <motion.div key="tree" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <GlassCard className="!p-2">
                     <h3 className="text-xs font-medium text-slate-500 mb-2 px-2">
                       PARSE TREE
@@ -306,17 +332,11 @@ export function WorkspaceClient() {
               )}
 
               {activeTab === "errors" && (
-                <motion.div
-                  key="errors"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <GlassCard>
-                    <h3 className="text-xs font-medium text-slate-500 mb-3">
-                      SYNTAX VALIDATION
-                    </h3>
-                    <ErrorPanel errors={result?.errors ?? []} />
-                  </GlassCard>
+                <motion.div key="errors" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <DiagnosticsPanel
+                    syntaxErrors={result?.errors ?? []}
+                    semanticErrors={result?.semanticErrors}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -328,7 +348,7 @@ export function WorkspaceClient() {
         <ConsolePanel
           logs={logs}
           status={status}
-          suggestions={result?.errors}
+          suggestions={allDiagnostics}
           tokenCount={result?.tokens.length}
           onClear={clearConsole}
         />

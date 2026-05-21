@@ -37,6 +37,19 @@ export type CompilerPhase =
   | "errors"
   | "output";
 
+export interface SymbolTableEntry {
+  identifier: string;
+  type: string;
+  scope: string;
+  line?: number;
+  column?: number;
+  declared?: boolean;
+  initialized?: boolean;
+  assignedValue?: string;
+  status?: string;
+  referenceLines?: number[];
+}
+
 export interface CompileResponse {
   tokens: Token[];
   errors: CompilerError[];
@@ -44,6 +57,8 @@ export interface CompileResponse {
   status: "success" | "error" | "warning";
   logs: string[];
   phase: CompilerPhase;
+  semanticErrors?: CompilerError[];
+  symbolTable?: SymbolTableEntry[];
 }
 
 export interface LogEntry {
