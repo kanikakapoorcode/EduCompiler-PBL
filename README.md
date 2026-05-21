@@ -1,6 +1,17 @@
 # EduCompiler
 
+[![Repository](https://img.shields.io/badge/GitHub-EduCompiler--PBL-blue)](https://github.com/kanikakapoorcode/EduCompiler-PBL)
+
 **Intelligent Syntax Error Detection & Compiler Phase Visualization System**
+
+## Repository
+
+**https://github.com/kanikakapoorcode/EduCompiler-PBL**
+
+```bash
+git clone https://github.com/kanikakapoorcode/EduCompiler-PBL.git
+cd EduCompiler-PBL
+```
 
 An interactive educational platform where users write code in a mini programming language and visually observe compiler phases: lexical analysis, token generation, syntax analysis, parse tree construction, and intelligent error suggestions.
 
