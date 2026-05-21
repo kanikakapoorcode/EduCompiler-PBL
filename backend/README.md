@@ -17,22 +17,23 @@ backend/
 │   │       ├── health.py        # GET /, GET /health
 │   │       ├── lexical.py       # POST /lexical/analyze
 │   │       ├── syntax.py        # POST /syntax/analyze
+│   │       ├── semantic.py      # POST /semantic/analyze
 │   │       └── compile.py       # POST /compile
 │   ├── models/
-│   │   ├── requests.py          # CompileRequest, LexicalRequest, SyntaxRequest
-│   │   └── responses.py         # TokenModel, LexicalResponse, SyntaxResponse, ...
-│   └── compiler/
-│       ├── pipeline.py          # Full compile orchestration
-│       ├── lexical/
-│       │   ├── tokens.py        # Token, KEYWORDS, TokenType
-│       │   ├── lexer.py         # Lexer.scan()
-│       │   └── analyzer.py      # LexicalAnalyzer.analyze()
-│       ├── syntax/
-│       │   ├── ast.py           # ASTNode
-│       │   ├── parser.py        # SyntaxParser.parse()
-│       │   └── analyzer.py      # SyntaxAnalyzer.analyze()
-│       └── errors/
-│           └── detector.py      # SyntaxErrorDetector.detect()
+│   │   ├── requests.py
+│   │   └── responses.py
+│   ├── compiler/                # Lexer & parser (unchanged)
+│   │   ├── pipeline.py
+│   │   ├── lexical/
+│   │   ├── syntax/
+│   │   └── errors/
+│   ├── semantic/                # Semantic error detection
+│   │   ├── semantic_rules.py
+│   │   └── semantic_analyzer.py
+│   └── symbol_table/            # Symbol table generation (export)
+│       ├── symbol_models.py
+│       ├── scope_handler.py
+│       └── symbol_manager.py
 ```
 
 ## Setup
@@ -71,9 +72,71 @@ Optional pre-tokenized input:
 
 Response: parse tree, syntax errors, suggestions.
 
+### `POST /semantic/analyze` — Semantic Analysis
+
+```json
+{ "source": "int x = 10;\nprint(y);" }
+```
+
+Response:
+
+```json
+{
+  "phase": "semantic",
+  "status": "error",
+  "semanticErrors": [
+    {
+      "line": 2,
+      "column": 7,
+      "message": "Variable 'y' not declared.",
+      "code": "UNDECLARED_VARIABLE"
+    }
+  ],
+  "logs": []
+}
+```
+
+Detects: undeclared variables, duplicate declarations, type mismatches, scope/use-before-decl, invalid keyword usage.
+
 ### `POST /compile` — Full Pipeline
 
-Runs lexical → syntax → error detection (same as frontend expects).
+Runs lexical → syntax → **semantic (optional)** → response.
+
+```json
+{ "source": "int x = 10;", "enable_semantic": true }
+```
+
+Response includes `semanticErrors` array (separate from syntax `errors`).
+
+### `POST /symbol-table/build` — Symbol Table
+
+```json
+{ "source": "int x = 10;\nint y = 20;" }
+```
+
+Response:
+
+```json
+{
+  "phase": "symbol_table",
+  "status": "success",
+  "symbolTable": [
+    {
+      "identifier": "x",
+      "type": "int",
+      "scope": "global",
+      "line": 1,
+      "declared": true,
+      "initialized": true,
+      "assignedValue": "10",
+      "status": "initialized"
+    }
+  ],
+  "symbolCount": 2
+}
+```
+
+`POST /compile` also returns `symbolTable` when `enable_symbol_table: true` (default).
 
 ## Phase Flow
 

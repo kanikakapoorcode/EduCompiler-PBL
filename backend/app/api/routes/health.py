@@ -15,11 +15,13 @@ def api_info():
     return {
         "name": settings.app_name,
         "version": settings.version,
-        "phases": ["lexical", "syntax", "compile"],
+        "phases": ["lexical", "syntax", "semantic", "symbol_table", "compile"],
         "endpoints": {
             "health": "GET /health",
             "lexical": "POST /lexical/analyze",
             "syntax": "POST /syntax/analyze",
+            "semantic": "POST /semantic/analyze",
+            "symbol_table": "POST /symbol-table/build",
             "compile": "POST /compile",
         },
     }

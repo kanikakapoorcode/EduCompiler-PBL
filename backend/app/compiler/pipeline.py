@@ -1,11 +1,18 @@
 """
-Full compiler pipeline — lexical → syntax → error detection → response.
+Full compiler pipeline — lexical → syntax → semantic (optional) → response.
 """
 
 from app.compiler.errors.detector import SyntaxErrorDetector
 from app.compiler.lexical.analyzer import LexicalAnalyzer
 from app.compiler.syntax.parser import SyntaxParser
-from app.models.responses import CompileResponse, ErrorModel, ParseTreeNodeModel, TokenModel
+from app.models.responses import (
+    CompileResponse,
+    ErrorModel,
+    ParseTreeNodeModel,
+    SemanticErrorModel,
+    SymbolTableEntryModel,
+    TokenModel,
+)
 
 
 def _dict_to_tree(node: dict) -> ParseTreeNodeModel:
@@ -16,7 +23,40 @@ def _dict_to_tree(node: dict) -> ParseTreeNodeModel:
     )
 
 
-def compile_source(source: str) -> CompileResponse:
+def _run_semantic_analysis(tokens, source: str) -> tuple[list[SemanticErrorModel], list[str]]:
+    """Optional semantic phase with graceful fallback."""
+    logs: list[str] = []
+    try:
+        from app.semantic.semantic_analyzer import SemanticAnalyzer
+
+        raw = SemanticAnalyzer().analyze(tokens, source)
+        logs.append(f"Semantic analysis completed: {len(raw)} issue(s)")
+        models = [SemanticErrorModel(**e) for e in raw]
+        return models, logs
+    except Exception:
+        logs.append("Semantic analysis skipped (fallback)")
+        return [], logs
+
+
+def _run_symbol_table(tokens) -> tuple[list[SymbolTableEntryModel], list[str]]:
+    logs: list[str] = []
+    try:
+        from app.symbol_table.symbol_manager import SymbolManager
+
+        raw = SymbolManager().build_from_tokens(tokens)
+        logs.append(f"Symbol table generated: {len(raw)} entries")
+        return [SymbolTableEntryModel(**row) for row in raw], logs
+    except Exception:
+        logs.append("Symbol table skipped (fallback)")
+        return [], logs
+
+
+def compile_source(
+    source: str,
+    *,
+    enable_semantic: bool = True,
+    enable_symbol_table: bool = True,
+) -> CompileResponse:
     logs: list[str] = ["Starting compilation pipeline..."]
     lexer = LexicalAnalyzer()
     detector = SyntaxErrorDetector()
@@ -42,27 +82,50 @@ def compile_source(source: str) -> CompileResponse:
             status="error",
             logs=logs + ["Lexical analysis failed"],
             phase="lexical",
+            semantic_errors=[],
+            symbol_table=[],
         )
 
     token_models = [TokenModel(**t.to_dict()) for t in tokens]
     raw_errors = detector.detect(tokens, source)
     errors = [ErrorModel(**e) for e in raw_errors]
-    has_errors = len(errors) > 0
+    has_syntax_errors = len(errors) > 0
 
-    if has_errors:
+    if has_syntax_errors:
         logs.append("Syntax errors detected during analysis")
     else:
         logs.append("Syntax analysis passed with no errors")
 
-    tree_dict = SyntaxParser(tokens, has_errors).parse()
+    tree_dict = SyntaxParser(tokens, has_syntax_errors).parse()
     logs.append("Parse tree constructed")
+
+    semantic_models: list[SemanticErrorModel] = []
+    if enable_semantic:
+        semantic_models, sem_logs = _run_semantic_analysis(tokens, source)
+        logs.extend(sem_logs)
+    else:
+        logs.append("Semantic analysis disabled")
+
+    symbol_entries: list[SymbolTableEntryModel] = []
+    if enable_symbol_table:
+        symbol_entries, sym_logs = _run_symbol_table(tokens)
+        logs.extend(sym_logs)
+    else:
+        logs.append("Symbol table generation disabled")
+
+    has_semantic_errors = any(
+        e.severity == "error" for e in semantic_models
+    )
+    has_errors = has_syntax_errors or has_semantic_errors
 
     if has_errors:
         logs.append("Compilation finished with errors")
-        status, phase = "error", "errors"
+        status = "error"
+        phase = "errors" if has_syntax_errors else "semantic"
     else:
         logs.append("Compilation finished — ready for code generation")
-        status, phase = "success", "output"
+        status = "success"
+        phase = "output"
 
     return CompileResponse(
         tokens=token_models,
@@ -71,4 +134,6 @@ def compile_source(source: str) -> CompileResponse:
         status=status,
         logs=logs,
         phase=phase,
+        semantic_errors=semantic_models,
+        symbol_table=symbol_entries,
     )

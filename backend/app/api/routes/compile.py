@@ -12,4 +12,8 @@ def compile_endpoint(request: CompileRequest) -> CompileResponse:
     """
     **Full pipeline** — lexical + syntax + error detection in one call.
     """
-    return compile_source(request.source)
+    return compile_source(
+        request.source,
+        enable_semantic=request.enable_semantic,
+        enable_symbol_table=request.enable_symbol_table,
+    )

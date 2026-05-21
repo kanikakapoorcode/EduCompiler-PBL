@@ -133,7 +133,9 @@ Remove semicolons to trigger syntax errors and see suggestions.
 |----------|--------|
 | `POST /lexical/analyze` | Lexical analysis only (tokens) |
 | `POST /syntax/analyze` | Syntax analysis + parse tree |
-| `POST /compile` | Full pipeline |
+| `POST /semantic/analyze` | Semantic analysis (undeclared vars, types) |
+| `POST /symbol-table/build` | Symbol table generation (identifiers, scope, values) |
+| `POST /compile` | Full pipeline (`semanticErrors` + `symbolTable`) |
 
 ```json
 { "source": "int x = 10;" }
