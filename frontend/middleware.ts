@@ -1,2 +1,11 @@
-// Next.js middleware is disabled as authentication is deactivated.
-export {};
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export default function middleware(request: NextRequest) {
+  return NextResponse.next();
+}
+
+export const config = {
+  // Empty matchers list so it matches nothing by default, avoiding any processing overhead.
+  matcher: [],
+};
