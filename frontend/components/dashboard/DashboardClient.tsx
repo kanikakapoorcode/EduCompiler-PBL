@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import {
   Cpu,
@@ -12,10 +11,8 @@ import {
   CheckCircle,
   History,
   Code2,
-  LogOut,
   Bookmark,
 } from "lucide-react";
-import { SignOutButton } from "@clerk/nextjs";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/Button";
 import {
@@ -24,38 +21,15 @@ import {
   type DashboardData,
   type SavedSession,
 } from "@/lib/sessions-api";
-import { HAS_CLERK } from "@/lib/auth";
 
-function DashboardNoClerk() {
-  return (
-    <div className="min-h-screen p-8 max-w-2xl mx-auto">
-      <GlassCard>
-        <p className="text-amber-300 text-sm">
-          Clerk keys not configured. Add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY to
-          .env.local, or set AUTH_DISABLED=true on the backend for local testing.
-        </p>
-        <Link href="/workspace" className="text-indigo-400 text-sm mt-4 inline-block">
-          Open workspace anyway →
-        </Link>
-      </GlassCard>
-    </div>
-  );
-}
-
-function DashboardWithClerk() {
-  const { getToken, isLoaded, isSignedIn } = useAuth();
+export function DashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!isSignedIn) {
-      setLoading(false);
-      return;
-    }
     try {
-      const token = await getToken();
-      const d = await fetchDashboard(token);
+      const d = await fetchDashboard("dev");
       setData(d);
       setError(null);
     } catch (e) {
@@ -64,35 +38,25 @@ function DashboardWithClerk() {
     } finally {
       setLoading(false);
     }
-  }, [getToken, isSignedIn]);
+  }, []);
 
   useEffect(() => {
-    if (isLoaded) load();
-  }, [isLoaded, load]);
+    load();
+  }, [load]);
 
   const handleDelete = async (id: string) => {
     try {
-      const token = await getToken();
-      await deleteSession(token, id);
+      await deleteSession("dev", id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
     }
   };
 
-  if (!isLoaded || loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500">
+      <div className="min-h-screen flex items-center justify-center text-slate-500 bg-[#030712]">
         Loading dashboard…
-      </div>
-    );
-  }
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-slate-400">Sign in to view your compiler history</p>
-        <Button href="/sign-in">Sign in</Button>
       </div>
     );
   }
@@ -131,7 +95,9 @@ function DashboardWithClerk() {
           <Cpu className="h-7 w-7 text-indigo-400" />
           <div>
             <h1 className="font-semibold text-white">My Dashboard</h1>
-            <p className="text-xs text-slate-500">Compiler history & stats</p>
+            <p className="text-xs text-slate-500">
+              Compiler history & stats
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -139,15 +105,6 @@ function DashboardWithClerk() {
             <Play className="h-4 w-4" />
             Open workspace
           </Button>
-          <SignOutButton>
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5"
-            >
-              <LogOut className="h-4 w-4" />
-              Log out
-            </button>
-          </SignOutButton>
         </div>
       </header>
 
@@ -156,7 +113,7 @@ function DashboardWithClerk() {
           <GlassCard className="border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
             {error}
             <p className="text-xs mt-2 text-slate-500">
-              Ensure backend is running and AUTH_DISABLED=true for local dev without Clerk JWT.
+              Ensure the backend is running on port 8000.
             </p>
           </GlassCard>
         )}
@@ -229,7 +186,7 @@ function DashboardWithClerk() {
                       </Link>
                       <button
                         type="button"
-                        onClick={() => handleDelete(session.id)}
+                        onClick={() => onDelete(session.id)}
                         className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -245,11 +202,4 @@ function DashboardWithClerk() {
       </main>
     </div>
   );
-}
-
-export function DashboardClient() {
-  if (!HAS_CLERK) {
-    return <DashboardNoClerk />;
-  }
-  return <DashboardWithClerk />;
 }

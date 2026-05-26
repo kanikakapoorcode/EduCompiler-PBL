@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { editor } from "monaco-editor";
 import { Loader2 } from "lucide-react";
@@ -24,13 +24,11 @@ interface CodeEditorProps {
 }
 
 export function CodeEditor({ value, onChange, errors = [] }: CodeEditorProps) {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<typeof import("monaco-editor") | null>(null);
+  const [editor, setEditor] = useState<editor.IStandaloneCodeEditor | null>(null);
+  const [monaco, setMonaco] = useState<typeof import("monaco-editor") | null>(null);
   const decorationIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
-    const editor = editorRef.current;
-    const monaco = monacoRef.current;
     if (!editor || !monaco) return;
 
     decorationIdsRef.current = editor.deltaDecorations(
@@ -46,7 +44,7 @@ export function CodeEditor({ value, onChange, errors = [] }: CodeEditorProps) {
         },
       }))
     );
-  }, [errors]);
+  }, [errors, editor, monaco]);
 
   return (
     <div className="monaco-wrapper h-full min-h-[280px] flex-1">
@@ -65,10 +63,9 @@ export function CodeEditor({ value, onChange, errors = [] }: CodeEditorProps) {
           padding: { top: 12 },
           glyphMargin: true,
         }}
-        beforeMount={(monaco) => {
-          monacoRef.current = monaco;
-          monaco.languages.register({ id: "educompiler" });
-          monaco.languages.setMonarchTokensProvider("educompiler", {
+        beforeMount={(m) => {
+          m.languages.register({ id: "educompiler" });
+          m.languages.setMonarchTokensProvider("educompiler", {
             keywords: [
               "int",
               "float",
@@ -98,7 +95,7 @@ export function CodeEditor({ value, onChange, errors = [] }: CodeEditorProps) {
               ],
             },
           });
-          monaco.editor.defineTheme("educompiler-dark", {
+          m.editor.defineTheme("educompiler-dark", {
             base: "vs-dark",
             inherit: true,
             rules: [
@@ -114,10 +111,10 @@ export function CodeEditor({ value, onChange, errors = [] }: CodeEditorProps) {
             },
           });
         }}
-        onMount={(editor, monaco) => {
-          editorRef.current = editor;
-          monacoRef.current = monaco;
-          monaco.editor.setTheme("educompiler-dark");
+        onMount={(ed, m) => {
+          setEditor(ed);
+          setMonaco(m);
+          m.editor.setTheme("educompiler-dark");
         }}
       />
     </div>

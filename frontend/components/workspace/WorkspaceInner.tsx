@@ -65,18 +65,9 @@ const PHASE_SEQUENCE: CompilerPhase[] = [
 
 const PHASE_MS = 350;
 
-type WorkspaceInnerProps = {
-  auth: WorkspaceAuth;
-  clerkEnabled?: boolean;
-  authToolbar?: ReactNode;
-};
+type WorkspaceInnerProps = {};
 
-export function WorkspaceInner({
-  auth,
-  clerkEnabled = false,
-  authToolbar,
-}: WorkspaceInnerProps) {
-  const { getToken, isSignedIn } = auth;
+export function WorkspaceInner({}: WorkspaceInnerProps) {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(DEFAULT_SAMPLE_CODE);
   const [result, setResult] = useState<CompileResponse | null>(null);
@@ -170,18 +161,14 @@ export function WorkspaceInner({
     setSaving(true);
     setSaveMsg(null);
     try {
-      const token = await getSessionToken(getToken, isSignedIn);
-      if (!token) {
-        setSaveMsg(authRequiredMessage());
-        return;
-      }
+      const token = "dev";
       await saveCompilation(token, {
         source_code: code,
         tokens: result.tokens,
         errors: [...result.errors, ...(result.semanticErrors ?? [])],
         syntax_status: result.status,
       });
-      setSaveMsg("Saved to your account");
+      setSaveMsg("Saved to history");
       appendLog(createLog("Session saved to database", "success"));
     } catch (e) {
       setSaveMsg(e instanceof Error ? e.message : "Save failed");
@@ -192,12 +179,11 @@ export function WorkspaceInner({
 
   useEffect(() => {
     const sessionId = searchParams.get("session");
-    if (!sessionId || !clerkEnabled) return;
+    if (!sessionId) return;
 
     (async () => {
       try {
-        const token = await getSessionToken(getToken, isSignedIn);
-        if (!token) return;
+        const token = "dev";
         const session = await fetchSession(token, sessionId);
         setCode(session.source_code);
         setLogs([createLog(`Loaded saved session ${sessionId}`, "info")]);
@@ -206,7 +192,7 @@ export function WorkspaceInner({
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, clerkEnabled]);
+  }, [searchParams]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -246,20 +232,12 @@ export function WorkspaceInner({
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {authToolbar}
-          {!clerkEnabled && (
-            <>
-              <Button href="/sign-in" variant="secondary" className="!px-3 !py-2">
-                <span className="text-xs">Log in</span>
-              </Button>
-              <Button href="/sign-up" variant="ghost" className="!px-3 !py-2">
-                <span className="text-xs">Sign up</span>
-              </Button>
-              <Button href="/dashboard" variant="ghost" className="!px-3 !py-2">
-                <span className="text-xs">History</span>
-              </Button>
-            </>
-          )}
+          <span className="text-[10px] text-indigo-300 px-2 py-1 rounded border border-indigo-500/30">
+            Local Workspace
+          </span>
+          <Button href="/dashboard" variant="ghost" className="!px-3 !py-2">
+            <span className="text-xs">History</span>
+          </Button>
           <SampleProgramPicker onSelect={setCode} disabled={isCompiling} />
           <span className="hidden md:inline text-[10px] text-slate-600">
             Ctrl+Enter

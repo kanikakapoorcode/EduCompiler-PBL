@@ -4,23 +4,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Cpu, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/Button";
-import { HAS_CLERK } from "@/lib/auth";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
 
-  const authLinks = (
-    <>
-      <Button href="/sign-in" variant="secondary">
-        Log in
-      </Button>
-      <Button href="/sign-up" variant="primary">
-        Sign up
-      </Button>
-    </>
-  );
+  const closeMenu = () => setOpen(false);
 
   return (
     <motion.header
@@ -43,33 +32,12 @@ export function Navbar() {
           <a href="#pipeline" className="text-sm text-slate-400 hover:text-white">
             Pipeline
           </a>
-          {HAS_CLERK ? (
-            <>
-              <SignedOut>{authLinks}</SignedOut>
-              <SignedIn>
-                <Link
-                  href="/dashboard"
-                  className="text-sm text-slate-400 hover:text-white"
-                >
-                  Dashboard
-                </Link>
-                <Button href="/workspace" variant="primary">
-                  Workspace
-                </Button>
-                <UserButton />
-              </SignedIn>
-            </>
-          ) : (
-            <>
-              {authLinks}
-              <Button href="/workspace" variant="ghost">
-                Workspace
-              </Button>
-              <Button href="/dashboard" variant="primary">
-                Dashboard
-              </Button>
-            </>
-          )}
+          <Button href="/workspace" variant="ghost">
+            Workspace
+          </Button>
+          <Button href="/dashboard" variant="primary">
+            Dashboard
+          </Button>
         </div>
 
         <button
@@ -89,14 +57,13 @@ export function Navbar() {
           className="border-t border-white/10 px-4 py-4 md:hidden"
         >
           <div className="flex flex-col gap-3">
-            <a href="#features" onClick={() => setOpen(false)}>
+            <a href="#features" onClick={closeMenu}>
               Features
             </a>
-            {authLinks}
-            <Button href="/workspace" onClick={() => setOpen(false)}>
+            <Button href="/workspace" onClick={closeMenu}>
               Workspace
             </Button>
-            <Button href="/dashboard" variant="ghost" onClick={() => setOpen(false)}>
+            <Button href="/dashboard" variant="ghost" onClick={closeMenu}>
               Dashboard
             </Button>
           </div>
