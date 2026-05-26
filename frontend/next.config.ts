@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   serverExternalPackages: ["@monaco-editor/react"],
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
