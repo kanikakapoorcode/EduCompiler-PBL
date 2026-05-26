@@ -4,10 +4,23 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Cpu, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/Button";
+import { HAS_CLERK } from "@/lib/auth";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+
+  const authLinks = (
+    <>
+      <Button href="/sign-in" variant="secondary">
+        Log in
+      </Button>
+      <Button href="/sign-up" variant="primary">
+        Sign up
+      </Button>
+    </>
+  );
 
   return (
     <motion.header
@@ -23,16 +36,40 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
           <a href="#features" className="text-sm text-slate-400 hover:text-white">
             Features
           </a>
           <a href="#pipeline" className="text-sm text-slate-400 hover:text-white">
             Pipeline
           </a>
-          <Button href="/workspace" variant="primary">
-            Start Compiling
-          </Button>
+          {HAS_CLERK ? (
+            <>
+              <SignedOut>{authLinks}</SignedOut>
+              <SignedIn>
+                <Link
+                  href="/dashboard"
+                  className="text-sm text-slate-400 hover:text-white"
+                >
+                  Dashboard
+                </Link>
+                <Button href="/workspace" variant="primary">
+                  Workspace
+                </Button>
+                <UserButton />
+              </SignedIn>
+            </>
+          ) : (
+            <>
+              {authLinks}
+              <Button href="/workspace" variant="ghost">
+                Workspace
+              </Button>
+              <Button href="/dashboard" variant="primary">
+                Dashboard
+              </Button>
+            </>
+          )}
         </div>
 
         <button
@@ -51,14 +88,17 @@ export function Navbar() {
           animate={{ opacity: 1, height: "auto" }}
           className="border-t border-white/10 px-4 py-4 md:hidden"
         >
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <a href="#features" onClick={() => setOpen(false)}>
               Features
             </a>
-            <a href="#pipeline" onClick={() => setOpen(false)}>
-              Pipeline
-            </a>
-            <Button href="/workspace">Start Compiling</Button>
+            {authLinks}
+            <Button href="/workspace" onClick={() => setOpen(false)}>
+              Workspace
+            </Button>
+            <Button href="/dashboard" variant="ghost" onClick={() => setOpen(false)}>
+              Dashboard
+            </Button>
           </div>
         </motion.div>
       )}

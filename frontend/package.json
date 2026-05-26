@@ -3,19 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node --max-old-space-size=2048 ./node_modules/next/dist/bin/next dev --webpack",
+    "dev:turbo": "node --max-old-space-size=2048 ./node_modules/next/dist/bin/next dev",
+    "dev:clean": "node ./scripts/clean-next-cache.mjs && npm run dev",
+    "build": "node --max-old-space-size=3072 ./node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.3.7",
+    "@clerk/themes": "^2.4.57",
     "@monaco-editor/react": "^4.7.0",
     "framer-motion": "^12.39.0",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "reactflow": "^11.11.4"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

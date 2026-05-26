@@ -11,11 +11,28 @@ Structure:
   app/models/         — Pydantic request/response schemas
 """
 
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load backend/.env before auth modules read os.environ
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.config import settings
+from app.database.connection import init_db
+from app.middleware.error_handler import register_exception_handlers
+
+init_db()
+
+# Log auth mode once at startup (after .env is loaded)
+if settings.auth_disabled:
+    print("[EduCompiler] AUTH_DISABLED=true — sessions accept Bearer dev/local")
+else:
+    print("[EduCompiler] Clerk JWT required for /sessions/*")
 
 app = FastAPI(
     title=settings.app_name,
@@ -36,6 +53,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+register_exception_handlers(app)
 app.include_router(api_router)
 
 

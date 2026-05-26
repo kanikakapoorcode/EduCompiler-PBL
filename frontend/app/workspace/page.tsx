@@ -1,4 +1,4 @@
-import { WorkspaceClient } from "@/components/workspace/WorkspaceClient";
+import { WorkspaceLoader } from "@/components/workspace/WorkspaceLoader";
 
 export const metadata = {
   title: "Workspace | EduCompiler",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function WorkspacePage() {
-  return <WorkspaceClient />;
+  return <WorkspaceLoader />;
 }

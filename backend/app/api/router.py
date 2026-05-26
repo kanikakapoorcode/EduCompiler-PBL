@@ -1,6 +1,14 @@
 from fastapi import APIRouter
 
-from app.api.routes import compile, health, lexical, semantic, symbol_table, syntax
+from app.api.routes import (
+    compile,
+    health,
+    lexical,
+    semantic,
+    sessions,
+    symbol_table,
+    syntax,
+)
 
 api_router = APIRouter()
 
@@ -12,3 +20,4 @@ api_router.include_router(
     symbol_table.router, prefix="/symbol-table", tags=["Symbol Table"]
 )
 api_router.include_router(compile.router, tags=["Compile"])
+api_router.include_router(sessions.router, prefix="/sessions", tags=["Sessions"])

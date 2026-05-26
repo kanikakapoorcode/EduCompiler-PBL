@@ -5,6 +5,8 @@ frontend/out/
 
 # Python
 backend/venv/
+backend/educompiler.db
+*.db
 backend/__pycache__/
 backend/**/__pycache__/
 *.pyc
