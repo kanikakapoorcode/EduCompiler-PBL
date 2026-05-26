@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect, type ReactNode } from "react";
+import { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,13 +37,7 @@ import {
   suggestionLogs,
 } from "@/lib/compile-helpers";
 import { saveCompilation, fetchSession } from "@/lib/sessions-api";
-import { getSessionToken, authRequiredMessage } from "@/lib/auth";
 import type { CompileResponse, CompilerPhase, LogEntry } from "@/lib/types";
-
-export type WorkspaceAuth = {
-  getToken: () => Promise<string | null>;
-  isSignedIn: boolean;
-};
 
 type TabId =
   | "pipeline"
@@ -65,9 +59,7 @@ const PHASE_SEQUENCE: CompilerPhase[] = [
 
 const PHASE_MS = 350;
 
-type WorkspaceInnerProps = {};
-
-export function WorkspaceInner({}: WorkspaceInnerProps) {
+export function WorkspaceInner() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState(DEFAULT_SAMPLE_CODE);
   const [result, setResult] = useState<CompileResponse | null>(null);
@@ -131,11 +123,13 @@ export function WorkspaceInner({}: WorkspaceInnerProps) {
       else if ((response.symbolTable?.length ?? 0) > 5) setActiveTab("symbols");
       else if (response.tokens.length > 20) setActiveTab("analysis");
       else setActiveTab("tokens");
-    } catch {
+    } catch (e) {
       setStatus("error");
-      appendLog(
-        createLog("Compilation failed — is the backend running on :8000?", "error")
-      );
+      const msg =
+        e instanceof Error
+          ? e.message
+          : "Compilation failed — is the backend running on :8000?";
+      appendLog(createLog(msg, "error"));
     } finally {
       setIsCompiling(false);
     }
@@ -161,8 +155,7 @@ export function WorkspaceInner({}: WorkspaceInnerProps) {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const token = "dev";
-      await saveCompilation(token, {
+      await saveCompilation({
         source_code: code,
         tokens: result.tokens,
         errors: [...result.errors, ...(result.semanticErrors ?? [])],
@@ -183,8 +176,7 @@ export function WorkspaceInner({}: WorkspaceInnerProps) {
 
     (async () => {
       try {
-        const token = "dev";
-        const session = await fetchSession(token, sessionId);
+        const session = await fetchSession(sessionId);
         setCode(session.source_code);
         setLogs([createLog(`Loaded saved session ${sessionId}`, "info")]);
       } catch {

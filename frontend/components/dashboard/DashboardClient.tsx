@@ -29,7 +29,7 @@ export function DashboardClient() {
 
   const load = useCallback(async () => {
     try {
-      const d = await fetchDashboard("dev");
+      const d = await fetchDashboard();
       setData(d);
       setError(null);
     } catch (e) {
@@ -46,7 +46,7 @@ export function DashboardClient() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteSession("dev", id);
+      await deleteSession(id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
@@ -186,7 +186,7 @@ export function DashboardClient() {
                       </Link>
                       <button
                         type="button"
-                        onClick={() => onDelete(session.id)}
+                        onClick={() => handleDelete(session.id)}
                         className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
                       >
                         <Trash2 className="h-3 w-3" />

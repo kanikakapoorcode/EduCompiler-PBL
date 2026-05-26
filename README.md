@@ -19,11 +19,9 @@ An interactive educational platform where users write code in a mini programming
 
 | Layer    | Technologies                                              |
 | -------- | --------------------------------------------------------- |
-| Frontend | Next.js (App Router), React, Tailwind CSS, Framer Motion, Clerk |
+| Frontend | Next.js (App Router), React, Tailwind CSS, Framer Motion  |
 | Editor   | Monaco Editor                                             |
-| Viz      | React Flow, Lucide Icons                                  |
 | Backend  | Python FastAPI, SQLAlchemy, PostgreSQL / SQLite           |
-| Auth     | Clerk (frontend) + JWT verification (backend)             |
 
 ## Project Structure
 
@@ -32,12 +30,10 @@ educompiler/
 ├── frontend/                 # Next.js application
 │   ├── app/
 │   │   ├── page.tsx          # Landing page
-│   │   ├── sign-in/ sign-up/ # Clerk auth pages
-│   │   ├── workspace/        # IDE workspace (protected)
+│   │   ├── workspace/        # IDE workspace
 │   │   ├── dashboard/        # Saved sessions & stats
 │   │   └── globals.css
 │   ├── components/
-│   │   ├── landing/          # Hero, features, pipeline viz
 │   │   ├── workspace/        # Monaco editor
 │   │   ├── compiler/         # Pipeline, tokens, tree, errors
 │   │   └── ui/               # GlassCard, Button
@@ -50,8 +46,8 @@ educompiler/
 │   ├── README.md             # Backend API docs
 │   └── app/
 │       ├── api/routes/       # /lexical, /syntax, /compile, /sessions
-│       ├── auth/             # Clerk JWT verification + FastAPI deps
 │       ├── database/         # SQLAlchemy connection
+│       ├── deps.py           # Local user for saved sessions
 │       ├── middleware/       # Global error handlers
 │       ├── models/           # Pydantic + db_models (users, sessions)
 │       ├── services/         # User + session persistence
@@ -111,39 +107,26 @@ Copy `frontend/.env.local.example` to `frontend/.env.local`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_USE_MOCK=false
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
 ```
 
 **Backend** (`backend/.env` from `.env.example`):
 
 ```
 DATABASE_URL=sqlite:///./educompiler.db
-AUTH_DISABLED=true          # local dev without Clerk JWT
-# CLERK_JWKS_URL=...        # production: from Clerk Dashboard
 ```
 
 **Workspace shortcuts:** `Ctrl+Enter` to compile · console shows live phase logs and suggestions
 
-## Authentication
+## Saved sessions
 
-Modular auth is isolated from compiler logic — compile APIs stay public; only session persistence requires login.
+No login required. Compilations are stored under a local user profile in the database.
 
 | Feature | Route / API |
 | -------- | ----------- |
-| Sign up | `/sign-up` (alias `/signup`) |
-| Log in | `/sign-in` (alias `/login`) |
-| Log out | Clerk `SignOutButton` / `UserButton` |
-| Compiler workspace | `/workspace` (protected when Clerk is configured) |
-| User dashboard & history | `/dashboard`, `/history` |
-| Save compilation | `POST /sessions` (Bearer token) |
-| Dashboard stats | `GET /sessions/stats/dashboard` |
-
-**Protected frontend routes** (middleware): `/workspace`, `/dashboard`, `/history`
-
-**Protected backend routes**: `/sessions/*` only — uses `get_current_user` in `app/auth/dependencies.py`
-
-**Local dev without Clerk:** omit `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` on the frontend and set `AUTH_DISABLED=true` on the backend; saves use `Bearer dev`.
+| Workspace | `/workspace` |
+| History | `/dashboard` |
+| Save | `POST /sessions` |
+| Stats | `GET /sessions/stats/dashboard` |
 
 ## Features
 
@@ -175,8 +158,8 @@ Remove semicolons to trigger syntax errors and see suggestions.
 | `POST /semantic/analyze` | Semantic analysis (undeclared vars, types) |
 | `POST /symbol-table/build` | Symbol table generation (identifiers, scope, values) |
 | `POST /compile` | Full pipeline (`semanticErrors` + `symbolTable`) |
-| `POST /sessions` | Save compilation (auth required) |
-| `GET /sessions/stats/dashboard` | User dashboard stats (auth required) |
+| `POST /sessions` | Save compilation |
+| `GET /sessions/stats/dashboard` | Dashboard stats |
 
 ```json
 { "source": "int x = 10;" }

@@ -3,16 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node --max-old-space-size=1536 ./node_modules/next/dist/bin/next dev",
-    "dev:webpack": "node --max-old-space-size=1536 ./node_modules/next/dist/bin/next dev --webpack",
-    "dev:clean": "node ./scripts/clean-next-cache.mjs && npm run dev",
-    "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
+    "dev": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev --webpack",
+    "dev:turbo": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev",
+    "dev:stop": "node ./scripts/stop-dev.mjs",
+    "dev:clean": "node ./scripts/stop-dev.mjs && node ./scripts/clean-next-cache.mjs && npm run dev",
+    "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.3.7",
-    "@clerk/themes": "^2.4.57",
     "@monaco-editor/react": "^4.7.0",
     "framer-motion": "^12.39.0",
     "lucide-react": "^1.16.0",

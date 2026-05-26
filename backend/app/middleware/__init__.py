@@ -1,4 +1,4 @@
-"""HTTP middleware and global exception handlers (auth uses route-level Depends)."""
+"""HTTP middleware and global exception handlers."""
 
 from app.middleware.error_handler import register_exception_handlers
 

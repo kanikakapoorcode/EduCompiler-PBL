@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
 from app.database.connection import get_db
+from app.deps import get_local_user
 from app.models.db_models import User
 from app.models.session_schemas import (
     DashboardStatsResponse,
@@ -25,10 +25,9 @@ def _to_response(row) -> SessionResponse:
 @router.post("", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 def save_session(
     body: SaveSessionRequest,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_local_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Save a compilation run for the authenticated user."""
     row = SessionService(db).save(
         user,
         source_code=body.source_code,
@@ -41,7 +40,7 @@ def save_session(
 
 @router.get("", response_model=SessionListResponse)
 def list_sessions(
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_local_user)],
     db: Annotated[Session, Depends(get_db)],
     limit: int = 50,
 ):
@@ -52,7 +51,7 @@ def list_sessions(
 
 @router.get("/stats/dashboard", response_model=DashboardStatsResponse)
 def dashboard_stats(
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_local_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
     svc = SessionService(db)
@@ -64,7 +63,7 @@ def dashboard_stats(
 @router.get("/{session_id}", response_model=SessionResponse)
 def get_session(
     session_id: str,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_local_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
     row = SessionService(db).get_for_user(user, session_id)
@@ -76,7 +75,7 @@ def get_session(
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_session(
     session_id: str,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_local_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
     if not SessionService(db).delete_for_user(user, session_id):

@@ -3,11 +3,6 @@
 import { Suspense } from "react";
 import { WorkspaceInner } from "./WorkspaceInner";
 
-const devAuth = {
-  getToken: async () => "dev" as string | null,
-  isSignedIn: true,
-};
-
 export function WorkspaceClient() {
   return (
     <Suspense
@@ -17,7 +12,7 @@ export function WorkspaceClient() {
         </div>
       }
     >
-      <WorkspaceInner auth={devAuth} />
+      <WorkspaceInner />
     </Suspense>
   );
 }

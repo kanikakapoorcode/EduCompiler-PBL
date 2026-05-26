@@ -7,15 +7,7 @@ router = APIRouter()
 
 @router.get("/health")
 def health_check():
-    import os
-
-    auth_disabled = os.getenv("AUTH_DISABLED", "false").lower() == "true"
-    return {
-        "status": "ok",
-        "service": settings.app_name,
-        "auth_disabled": auth_disabled,
-        "sessions_require_clerk": not auth_disabled,
-    }
+    return {"status": "ok", "service": settings.app_name}
 
 
 @router.get("/")
@@ -31,6 +23,6 @@ def api_info():
             "semantic": "POST /semantic/analyze",
             "symbol_table": "POST /symbol-table/build",
             "compile": "POST /compile",
-            "sessions": "POST/GET /sessions (auth required)",
+            "sessions": "POST/GET /sessions",
         },
     }

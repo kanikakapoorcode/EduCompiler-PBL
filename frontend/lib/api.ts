@@ -32,39 +32,50 @@ function detectLikelyError(source: string): boolean {
   });
 }
 
+async function mockCompile(source: string): Promise<CompileResponse> {
+  await new Promise((r) => setTimeout(r, 600));
+  if (detectLikelyError(source)) return { ...mockErrorResponse };
+  if (source.length > 200 || source.includes("mathScore")) {
+    return buildBigMockResponse();
+  }
+  return { ...mockSuccessResponse };
+}
+
 export async function compileCode(
   source: string
 ): Promise<CompileResponse> {
   if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 900));
-    if (detectLikelyError(source)) return { ...mockErrorResponse };
-    if (source.length > 200 || source.includes("mathScore")) {
-      return buildBigMockResponse();
-    }
-    return { ...mockSuccessResponse };
+    return mockCompile(source);
   }
 
-  try {
-    const res = await fetch(`${API_BASE}/compile`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        source,
-        enable_semantic: true,
-        enable_symbol_table: true,
-      }),
-    });
+  const res = await fetch(`${API_BASE}/compile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source,
+      enable_semantic: true,
+      enable_symbol_table: true,
+    }),
+  });
 
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
+  if (!res.ok) {
+    let message = `Compile failed (${res.status})`;
+    try {
+      const err = await res.json();
+      if (err.detail) {
+        message =
+          typeof err.detail === "string"
+            ? err.detail
+            : JSON.stringify(err.detail);
+      }
+    } catch {
+      /* ignore */
     }
-
-    const raw = (await res.json()) as Record<string, unknown>;
-    return normalizeCompileResponse(raw);
-  } catch {
-    await new Promise((r) => setTimeout(r, 500));
-    return detectLikelyError(source)
-      ? { ...mockErrorResponse }
-      : { ...mockSuccessResponse };
+    throw new Error(
+      `${message}. Is the backend running at ${API_BASE}?`
+    );
   }
+
+  const raw = (await res.json()) as Record<string, unknown>;
+  return normalizeCompileResponse(raw);
 }

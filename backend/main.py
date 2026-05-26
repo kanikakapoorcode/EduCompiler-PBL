@@ -1,21 +1,11 @@
 """
 EduCompiler FastAPI entry point.
-
-Structure:
-  app/api/routes/     — HTTP endpoints (lexical, syntax, compile)
-  app/compiler/       — Compiler phases
-    lexical/          — Lexer, tokens, LexicalAnalyzer
-    syntax/           — Parser, AST, SyntaxAnalyzer
-    errors/           — SyntaxErrorDetector
-    pipeline.py       — Full compile orchestration
-  app/models/         — Pydantic request/response schemas
 """
 
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load backend/.env before auth modules read os.environ
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from fastapi import FastAPI
@@ -27,12 +17,6 @@ from app.database.connection import init_db
 from app.middleware.error_handler import register_exception_handlers
 
 init_db()
-
-# Log auth mode once at startup (after .env is loaded)
-if settings.auth_disabled:
-    print("[EduCompiler] AUTH_DISABLED=true — sessions accept Bearer dev/local")
-else:
-    print("[EduCompiler] Clerk JWT required for /sessions/*")
 
 app = FastAPI(
     title=settings.app_name,
